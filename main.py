@@ -28,48 +28,48 @@ def main():
     4. Iniciar el servidor API
     """
     # Configurar logger para registrar actividades
-    log = get_logger("main")
+    log = get_logger("principal")
     
     # Configurar argumentos de línea de comandos
     # Estos argumentos permiten personalizar cómo se inicia el programa
-    parser = argparse.ArgumentParser(
+    analizador = argparse.ArgumentParser(
         description="Sistema de Extracción y Análisis Inteligente de Documentos"
     )
-    parser.add_argument(
-        "--api-only", 
+    analizador.add_argument(
+        "--solo-api", 
         action="store_true", 
         help="Iniciar solo el servidor API"
     )
-    parser.add_argument(
+    analizador.add_argument(
         "--host", 
         type=str, 
         default=config.API_HOST,
-        help=f"Host para el servidor API (default: {config.API_HOST})"
+        help=f"Host para el servidor API (predeterminado: {config.API_HOST})"
     )
-    parser.add_argument(
-        "--port", 
+    analizador.add_argument(
+        "--puerto", 
         type=int, 
         default=config.API_PORT,
-        help=f"Puerto para el servidor API (default: {config.API_PORT})"
+        help=f"Puerto para el servidor API (predeterminado: {config.API_PORT})"
     )
     
     # Procesar los argumentos proporcionados
-    args = parser.parse_args()
+    argumentos = analizador.parse_args()
     
     # Actualizar configuración si se especificaron argumentos
-    if args.host != config.API_HOST:
-        config.API_HOST = args.host
-        log.info(f"Host de API actualizado a: {args.host}")
+    if argumentos.host != config.API_HOST:
+        config.API_HOST = argumentos.host
+        log.info(f"Host de API actualizado a: {argumentos.host}")
         
-    if args.port != config.API_PORT:
-        config.API_PORT = args.port
-        log.info(f"Puerto de API actualizado a: {args.port}")
+    if argumentos.puerto != config.API_PORT:
+        config.API_PORT = argumentos.puerto
+        log.info(f"Puerto de API actualizado a: {argumentos.puerto}")
     
     # Verificar que existan los directorios necesarios
-    for directory in [config.INPUT_DIR, config.OUTPUT_DIR, config.LOG_DIR]:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-            log.info(f"Directorio creado: {directory}")
+    for directorio in [config.INPUT_DIR, config.OUTPUT_DIR, config.LOG_DIR]:
+        if not os.path.exists(directorio):
+            os.makedirs(directorio)
+            log.info(f"Directorio creado: {directorio}")
     
     # Iniciar servidor API
     log.info("Iniciando Sistema de Extracción y Análisis Inteligente de Documentos")
