@@ -1,0 +1,32 @@
+# Este archivo contiene la lista de todas las bibliotecas (herramientas) que nuestro sistema necesita.
+# Estas bibliotecas se instalarán automáticamente usando el comando: pip install -r requirements.txt
+
+# --- BIBLIOTECAS PARA OCR (Reconocimiento Óptico de Caracteres) ---
+# Estas herramientas nos permiten extraer texto de imágenes y PDFs
+pytesseract>=0.3.10      # Herramienta principal para convertir imágenes a texto
+pdf2image>=1.16.3        # Convierte PDFs a imágenes para poder procesarlos
+opencv-python>=4.7.0     # Biblioteca para procesamiento de imágenes (mejora la calidad)
+Pillow>=9.5.0            # Otra biblioteca para trabajar con imágenes
+
+# --- BIBLIOTECAS PARA NLP (Procesamiento de Lenguaje Natural) ---
+# Estas herramientas nos ayudan a entender y analizar el texto extraído
+spacy>=3.5.3             # Biblioteca principal para análisis de lenguaje
+nltk>=3.8.1              # Otra biblioteca para procesamiento de texto
+transformers>=4.30.2     # Modelos avanzados de IA para entender texto
+keybert>=0.7.0           # Especializada en extraer palabras clave
+yake>=0.4.8              # Otra herramienta para extraer palabras clave
+
+# --- BIBLIOTECAS PARA API (Interfaz de programación) ---
+# Estas herramientas nos permiten crear la interfaz web para usar el sistema
+fastapi>=0.97.0          # Marco para crear APIs web rápidas
+uvicorn>=0.22.0          # Servidor web para ejecutar la API
+python-multipart>=0.0.6  # Ayuda a manejar archivos subidos
+
+# --- BIBLIOTECAS DE UTILIDADES ---
+# Herramientas generales para el funcionamiento del sistema
+python-dotenv>=1.0.0     # Para cargar configuraciones desde un archivo
+loguru>=0.7.0            # Sistema avanzado para registrar lo que hace el programa
+
+# --- BIBLIOTECAS PARA PRUEBAS ---
+# Herramientas para verificar que todo funciona correctamente
+pytest>=7.3.1            # Marco de pruebas automatizadas
