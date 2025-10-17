@@ -1,0 +1,41 @@
+# Entornos virtuales de Python
+# Estas carpetas contienen las bibliotecas instaladas y son específicas de cada máquina.
+venv/
+.venv/
+env/
+ENV/
+
+# Archivos de caché de Python
+# Python crea estos archivos automáticamente para acelerar la ejecución.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de configuración de IDEs (editores de código)
+# Cada desarrollador puede tener su propia configuración.
+.vscode/
+.idea/
+
+# Archivo de variables de entorno
+# Contiene información sensible o específica del entorno local, como claves de API.
+.env
+
+# Archivos de registro (logs)
+# Estos archivos se generan durante la ejecución y no son parte del código fuente.
+logs/
+*.log
+
+# Datos de entrada y salida
+# Estos directorios contendrán los archivos subidos por los usuarios y los resultados,
+# los cuales no deben estar en el control de versiones.
+# El archivo .gitkeep es una convención para mantener las carpetas vacías en Git.
+data/input/*
+!data/input/.gitkeep
+data/output/*
+!data/output/.gitkeep
+
+# Archivos generados por el sistema operativo
+# Archivos específicos de macOS y Windows que no son necesarios.
+.DS_Store
+Thumbs.db
