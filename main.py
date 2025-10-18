@@ -2,43 +2,32 @@
 """
 PROGRAMA PRINCIPAL DEL SISTEMA DE EXTRACCIÓN Y ANÁLISIS INTELIGENTE DE DOCUMENTOS
 
-Este es el punto de entrada principal del sistema. Al ejecutar este archivo,
-se inicia todo el sistema con su API y procesamiento de documentos.
-
-Es como el "botón de encendido" de toda la aplicación.
+Este es el punto de entrada principal del sistema.
 """
 
 import os
+import sys
 import argparse
-from loguru import logger
 
-# Importar componentes
-from src.api.app import iniciar
-from src.utils.logger import get_logger
+# Agregar el directorio raíz al path para importaciones
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Importar configuración primero
 import config
+
+# Importar logger
+from src.utils.logger import get_logger
 
 def main():
     """
     Función principal del programa.
-    
-    Esta función se ejecuta cuando iniciamos el programa y se encarga de:
-    1. Configurar los registros (logs)
-    2. Procesar argumentos de línea de comandos
-    3. Verificar directorios necesarios
-    4. Iniciar el servidor API
     """
     # Configurar logger para registrar actividades
     log = get_logger("principal")
     
     # Configurar argumentos de línea de comandos
-    # Estos argumentos permiten personalizar cómo se inicia el programa
     analizador = argparse.ArgumentParser(
         description="Sistema de Extracción y Análisis Inteligente de Documentos"
-    )
-    analizador.add_argument(
-        "--solo-api", 
-        action="store_true", 
-        help="Iniciar solo el servidor API"
     )
     analizador.add_argument(
         "--host", 
@@ -73,25 +62,21 @@ def main():
     
     # Iniciar servidor API
     log.info("Iniciando Sistema de Extracción y Análisis Inteligente de Documentos")
+    log.info(f"Documentación disponible en: http://{config.API_HOST}:{config.API_PORT}/docs")
+    
     try:
-        # Esta función inicia el servidor web y no retorna hasta que se detenga
+        # Importar aquí para evitar problemas de importación circular
+        from src.api.app import iniciar
         iniciar()
     except KeyboardInterrupt:
-        # Capturar cuando el usuario presiona Ctrl+C para detener el programa
         log.info("Sistema detenido por el usuario")
     except Exception as e:
-        # Capturar cualquier error inesperado
         log.error(f"Error al iniciar el sistema: {str(e)}")
+        import traceback
+        log.error(traceback.format_exc())
         return 1
     
     return 0
 
-# Este bloque se ejecuta cuando el archivo se corre directamente
 if __name__ == "__main__":
     exit(main())
-
-# Iniciar el servidor OCR
-if __name__ == "__main__":
-    print("Iniciando servidor OCR en puerto 8000...")
-    print("Documentación: http://localhost:8000/docs")
-    iniciar()

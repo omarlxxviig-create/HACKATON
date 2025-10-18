@@ -3,228 +3,154 @@ EXTRACCIÓN DE PALABRAS CLAVE
 
 Este archivo contiene herramientas para identificar las palabras
 y frases más importantes de un texto.
-
-Es como tener un asistente que lee un documento y subraya
-las palabras clave o temas principales.
 """
 
 import yake
-from keybert import KeyBERT
-import spacy
 from loguru import logger
-import nltk
 from collections import Counter
+import re
 
-# Descargar recursos necesarios
-try:
-    nltk.data.find('stopwords')
-except LookupError:
-    nltk.download('stopwords')
-    nltk.download('punkt')
-
-from nltk.corpus import stopwords
-
-class KeywordExtractor:
+class ExtractorPalabrasClave:
     """
-    Clase para extraer palabras clave de textos.
-    
-    Utiliza diferentes algoritmos para encontrar las palabras o
-    frases más importantes en un texto. Es como identificar
-    los conceptos principales de un documento.
+    Clase simplificada para extraer palabras clave de textos.
     """
     
-    def __init__(self, language="en"):
+    def __init__(self, idioma="es"):
         """
         Inicializa el extractor de palabras clave.
         
         Args:
-            language: Idioma del texto (en=inglés, es=español, etc.)
+            idioma: Código del idioma (es=español, en=inglés)
         """
-        self.logger = logger.bind(name="KeywordExtractor")
-        self.language = language
+        self.logger = logger.bind(name="ExtractorPalabrasClave")
+        self.idioma = idioma
         
-        # Mapeo entre códigos de idioma para diferentes bibliotecas
-        self.lang_map = {
-            "en": "english",
-            "es": "spanish",
-            "fr": "french",
-            "de": "german",
-            "it": "italian",
-            "pt": "portuguese"
+        # Palabras comunes básicas en español e inglés
+        self.palabras_comunes = {
+            "es": {"el", "la", "de", "que", "y", "a", "en", "un", "ser", "se", "no", "haber", "por", "con", "su", "para", "como", "estar", "tener", "le", "lo", "todo", "pero", "más", "hacer", "o", "poder", "decir", "este", "ir", "otro", "ese", "si", "me", "ya", "ver", "porque", "dar", "cuando", "él", "muy", "sin", "vez", "mucho", "saber", "qué", "sobre", "mi", "alguno", "mismo", "yo", "también", "hasta", "año", "dos", "querer", "entre", "así", "primero", "desde", "grande", "eso", "ni", "nos", "llegar", "pasar", "tiempo", "ella", "sí", "día", "uno", "bien", "poco", "deber", "entonces", "poner", "cosa", "tanto", "hombre", "parecer", "nuestro", "tan", "donde", "ahora", "parte", "después", "vida", "quedar", "siempre", "creer", "hablar", "llevar", "dejar", "nada", "cada", "seguir", "menos", "nuevo", "encontrar", "algo", "solo", "decir", "son", "las", "los", "una", "del"},
+            "en": {"the", "be", "to", "of", "and", "a", "in", "that", "have", "i", "it", "for", "not", "on", "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from", "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", "their", "what", "so", "up", "out", "if", "about", "who", "get", "which", "go", "me", "when", "make", "can", "like", "time", "no", "just", "him", "know", "take", "people", "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over", "think", "also", "back", "after", "use", "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us", "is", "was", "are", "been", "has", "had", "were", "said", "did", "having", "may"}
         }
         
-        # Inicializar KeyBERT (modelo basado en IA para palabras clave)
+        # Inicializar YAKE
         try:
-            self.keybert_model = KeyBERT()
-            self.logger.info("KeyBERT inicializado correctamente")
-        except Exception as e:
-            self.logger.error(f"Error al inicializar KeyBERT: {str(e)}")
-            self.keybert_model = None
-            
-        # Inicializar YAKE (otro algoritmo para palabras clave)
-        self.yake_extractor = yake.KeywordExtractor()
-        
-        # Cargar "stopwords" (palabras comunes como "el", "la", "y", "que", etc.)
-        # que normalmente se excluyen del análisis
-        nltk_lang = self.lang_map.get(language, "english")
-        self.stop_words = set(stopwords.words(nltk_lang))
-        
-    def extract_with_keybert(self, text, top_n=10):
-        """
-        Extrae palabras clave usando el algoritmo KeyBERT.
-        
-        KeyBERT usa modelos de IA avanzados para entender el significado
-        del texto y encontrar las palabras más relevantes.
-        
-        Args:
-            text: Texto del que extraer palabras clave
-            top_n: Número de palabras clave a extraer
-            
-        Returns:
-            Lista de palabras clave con su puntuación de relevancia
-        """
-        if not self.keybert_model:
-            self.logger.warning("KeyBERT no está disponible")
-            return []
-            
-        try:
-            keywords = self.keybert_model.extract_keywords(
-                text, 
-                keyphrase_ngram_range=(1, 2),  # Permite palabras individuales o pares
-                stop_words=self.stop_words,    # Ignora palabras comunes
-                top_n=top_n                    # Número máximo de resultados
+            self.extractor_yake = yake.KeywordExtractor(
+                lan=idioma,
+                n=2,
+                dedupLim=0.9,
+                top=20
             )
-            return keywords
+            self.logger.info("YAKE inicializado correctamente")
         except Exception as e:
-            self.logger.error(f"Error en extracción KeyBERT: {str(e)}")
-            return []
+            self.logger.error(f"Error al inicializar YAKE: {str(e)}")
+            self.extractor_yake = None
     
-    def extract_with_yake(self, text, top_n=10):
+    def limpiar_texto(self, texto: str) -> list[str]:
         """
-        Extrae palabras clave usando el algoritmo YAKE.
-        
-        YAKE es un algoritmo que no requiere entrenamiento y funciona
-        analizando características estadísticas del texto.
+        Limpia y tokeniza el texto.
         
         Args:
-            text: Texto del que extraer palabras clave
-            top_n: Número de palabras clave a extraer
+            texto: Texto a limpiar
             
         Returns:
-            Lista de palabras clave con su puntuación de relevancia
+            Lista de palabras limpias
         """
-        try:
-            # Configurar YAKE para el idioma actual
-            language = self.language
-            max_ngram_size = 2  # Permite palabras individuales o pares
-            deduplication_threshold = 0.9  # Evitar palabras clave muy similares
-            
-            custom_kw_extractor = yake.KeywordExtractor(
-                lan=language, 
-                n=max_ngram_size, 
-                dedupLim=deduplication_threshold, 
-                top=top_n
-            )
-            
-            keywords = custom_kw_extractor.extract_keywords(text)
-            # YAKE da puntuaciones menores a mejores palabras clave, invertir
-            return [(kw, 1/score) for kw, score in keywords]
-        except Exception as e:
-            self.logger.error(f"Error en extracción YAKE: {str(e)}")
-            return []
-    
-    def extract_with_tfidf(self, text, top_n=10):
-        """
-        Extrae palabras clave usando TF-IDF básico.
+        # Convertir a minúsculas
+        texto = texto.lower()
         
-        TF-IDF es un método estadístico que identifica palabras
-        importantes basándose en su frecuencia en el texto.
+        # Remover puntuación pero mantener espacios
+        texto = re.sub(r'[^\w\s]', ' ', texto)
+        
+        # Dividir en palabras
+        palabras = texto.split()
+        
+        # Filtrar palabras
+        palabras_comunes = self.palabras_comunes.get(self.idioma, set())
+        palabras_filtradas = [
+            p for p in palabras 
+            if len(p) > 2 
+            and p not in palabras_comunes
+            and not p.isdigit()
+        ]
+        
+        return palabras_filtradas
+    
+    def extraer_con_yake(self, texto: str, cantidad: int = 10) -> list[tuple[str, float]]:
+        """
+        Extrae palabras clave usando YAKE.
         
         Args:
-            text: Texto del que extraer palabras clave
-            top_n: Número de palabras clave a extraer
+            texto: Texto a analizar
+            cantidad: Número de palabras clave a extraer
             
         Returns:
-            Lista de palabras clave con su puntuación
+            Lista de tuplas (palabra_clave, puntuación)
+        """
+        if not self.extractor_yake:
+            self.logger.warning("YAKE no está disponible, usando método simple")
+            return self.extraer_con_frecuencia(texto, cantidad)
+            
+        try:
+            palabras_clave = self.extractor_yake.extract_keywords(texto)
+            # Normalizar puntuaciones (YAKE da valores bajos a palabras importantes)
+            if palabras_clave:
+                max_score = max(score for _, score in palabras_clave) + 0.001
+                return [(palabra, max_score - score) for palabra, score in palabras_clave[:cantidad]]
+            return []
+        except Exception as e:
+            self.logger.error(f"Error en YAKE: {str(e)}")
+            return self.extraer_con_frecuencia(texto, cantidad)
+    
+    def extraer_con_frecuencia(self, texto: str, cantidad: int = 10) -> list[tuple[str, float]]:
+        """
+        Extrae palabras clave por frecuencia (método de respaldo).
+        
+        Args:
+            texto: Texto a analizar
+            cantidad: Número de palabras clave a extraer
+            
+        Returns:
+            Lista de tuplas (palabra_clave, puntuación)
         """
         try:
-            # Dividir el texto en palabras
-            tokens = nltk.word_tokenize(text.lower())
+            palabras = self.limpiar_texto(texto)
             
-            # Filtrar palabras:
-            # - Solo palabras alfanuméricas
-            # - No incluir palabras comunes como "el", "la", etc.
-            # - Palabras con más de 2 caracteres
-            tokens = [token for token in tokens 
-                     if token.isalnum() 
-                     and token not in self.stop_words 
-                     and len(token) > 2]
+            if not palabras:
+                return []
             
-            # Contar frecuencias de cada palabra
-            word_freq = Counter(tokens)
-            
-            # Obtener las palabras más frecuentes
-            keywords = word_freq.most_common(top_n)
+            # Contar frecuencias
+            contador = Counter(palabras)
+            palabras_frecuentes = contador.most_common(cantidad)
             
             # Normalizar puntuaciones
-            return [(kw, freq/len(tokens)) for kw, freq in keywords]
+            total = len(palabras)
+            return [(palabra, freq / total) for palabra, freq in palabras_frecuentes]
+            
         except Exception as e:
-            self.logger.error(f"Error en extracción TF-IDF: {str(e)}")
+            self.logger.error(f"Error en extracción por frecuencia: {str(e)}")
             return []
     
-    def extract_keywords(self, text, method="combined", top_n=10):
+    def extraer_palabras_clave(self, texto: str, metodo: str = "yake", cantidad: int = 10) -> list[tuple[str, float]]:
         """
-        Método principal: extrae palabras clave usando el método especificado.
-        
-        Puede usar diferentes algoritmos o combinarlos para obtener
-        mejores resultados.
+        Extrae palabras clave del texto.
         
         Args:
-            text: Texto del que extraer palabras clave
-            method: Método a usar ('keybert', 'yake', 'tfidf', 'combined')
-            top_n: Número de palabras clave a extraer
+            texto: Texto a analizar
+            metodo: Método a usar ('yake' o 'frecuencia')
+            cantidad: Número de palabras clave a extraer
             
         Returns:
-            Lista de palabras clave con sus puntuaciones
+            Lista de tuplas (palabra_clave, puntuación)
         """
-        if not text or len(text.strip()) < 50:
+        if not texto or len(texto.strip()) < 50:
             self.logger.warning("Texto demasiado corto para extraer palabras clave")
             return []
         
-        self.logger.info(f"Extrayendo palabras clave con método: {method}")
+        self.logger.info(f"Extrayendo {cantidad} palabras clave con método: {metodo}")
         
-        if method == "keybert":
-            # Usar solo KeyBERT
-            return self.extract_with_keybert(text, top_n)
-        elif method == "yake":
-            # Usar solo YAKE
-            return self.extract_with_yake(text, top_n)
-        elif method == "tfidf":
-            # Usar solo TF-IDF
-            return self.extract_with_tfidf(text, top_n)
-        elif method == "combined":
-            # Método combinado: usar varios algoritmos y combinar sus resultados
-            
-            # Obtener palabras clave de diferentes métodos
-            keywords1 = dict(self.extract_with_keybert(text, top_n))
-            keywords2 = dict(self.extract_with_yake(text, top_n))
-            
-            # Combinar puntuaciones
-            all_keywords = set(list(keywords1.keys()) + list(keywords2.keys()))
-            combined_scores = {}
-            
-            for kw in all_keywords:
-                score1 = keywords1.get(kw, 0)
-                score2 = keywords2.get(kw, 0)
-                # Peso para cada método (60% KeyBERT, 40% YAKE)
-                combined_scores[kw] = 0.6 * score1 + 0.4 * score2
-            
-            # Ordenar y devolver los top_n
-            sorted_keywords = sorted(combined_scores.items(), 
-                                    key=lambda x: x[1], 
-                                    reverse=True)[:top_n]
-            
-            return sorted_keywords
-        else:
-            self.logger.error(f"Método de extracción desconocido: {method}")
-            return []
+        if metodo == "frecuencia":
+            return self.extraer_con_frecuencia(texto, cantidad)
+        else:  # Por defecto usa YAKE
+            return self.extraer_con_yake(texto, cantidad)
+
+# Alias para compatibilidad
+KeywordExtractor = ExtractorPalabrasClave

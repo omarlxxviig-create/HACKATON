@@ -2,176 +2,182 @@
 EXTRACCIÓN DE ENTIDADES
 
 Este archivo contiene herramientas para identificar y extraer
-entidades nombradas en un texto, como nombres de personas, 
-organizaciones, lugares, fechas, etc.
-
-Es como tener un asistente que lee un texto y subraya todos los
-nombres propios, empresas, lugares, fechas y otros elementos importantes.
+entidades nombradas en un texto como personas, organizaciones, lugares, etc.
 """
 
 import spacy
 from loguru import logger
 import config
+import subprocess
+import sys
 
-class EntityExtractor:
+class ExtractorEntidades:
     """
-    Clase para extraer entidades nombradas de textos.
-    
-    Utiliza modelos de lenguaje de spaCy para identificar
-    automáticamente elementos como nombres de personas,
-    organizaciones, lugares, fechas, etc. en un texto.
+    Clase para extraer entidades nombradas de textos usando spaCy.
     """
     
-    def __init__(self, language="eng"):
+    def __init__(self, idioma="spa"):
         """
         Inicializa el extractor de entidades.
         
         Args:
-            language: Código de idioma (eng=inglés, spa=español)
+            idioma: Código de idioma (spa=español, eng=inglés)
         """
-        self.logger = logger.bind(name="EntityExtractor")
-        self.language = language
+        self.logger = logger.bind(name="ExtractorEntidades")
+        self.idioma = idioma
         
-        # Determinar qué modelo de spaCy usar según el idioma
-        model_name = config.NLP_MODELS.get(language, config.NLP_MODELS.get("eng"))
+        # Obtener nombre del modelo de spaCy
+        nombre_modelo = config.NLP_MODELS.get(idioma)
+        
+        if nombre_modelo is None:
+            self.logger.error(f"No hay modelo configurado para: {idioma}")
+            # Usar modelo por defecto
+            nombre_modelo = "es_core_news_sm" if idioma == "spa" else "en_core_web_sm"
+            self.logger.warning(f"Usando modelo por defecto: {nombre_modelo}")
+        
+        # Intentar cargar el modelo
+        self.nlp = None
+        self.logger.info(f"Intentando cargar modelo spaCy: {nombre_modelo}")
         
         try:
-            # Intentar cargar el modelo de lenguaje
-            self.logger.info(f"Cargando modelo spaCy: {model_name}")
-            self.nlp = spacy.load(model_name)
-            self.logger.info(f"Modelo {model_name} cargado correctamente")
+            self.nlp = spacy.load(nombre_modelo)
+            self.logger.info(f"Modelo {nombre_modelo} cargado correctamente")
         except Exception as e:
-            # Si no está instalado, intentar descargarlo
-            self.logger.error(f"Error cargando modelo {model_name}: {str(e)}")
-            self.logger.warning("Intentando descargar el modelo...")
+            self.logger.warning(f"No se pudo cargar {nombre_modelo}: {str(e)}")
+            self.logger.info("Intentando descargar el modelo...")
+            
             try:
-                spacy.cli.download(model_name)
-                self.nlp = spacy.load(model_name)
-                self.logger.info(f"Modelo {model_name} descargado y cargado correctamente")
+                subprocess.check_call(
+                    [sys.executable, "-m", "spacy", "download", nombre_modelo],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+                self.nlp = spacy.load(nombre_modelo)
+                self.logger.info(f"Modelo {nombre_modelo} descargado y cargado")
             except Exception as e2:
-                self.logger.error(f"No se pudo descargar el modelo {model_name}: {str(e2)}")
-                # Intentar con un modelo más pequeño como respaldo
-                fallback_model = "en_core_web_sm" if language == "eng" else "es_core_news_sm"
+                self.logger.error(f"No se pudo descargar {nombre_modelo}: {str(e2)}")
+                
+                # Intentar con modelo de respaldo
+                modelo_respaldo = "es_core_news_sm" if idioma == "spa" else "en_core_web_sm"
+                self.logger.info(f"Intentando modelo de respaldo: {modelo_respaldo}")
+                
                 try:
-                    self.logger.info(f"Intentando cargar modelo de respaldo: {fallback_model}")
-                    self.nlp = spacy.load(fallback_model)
-                except:
-                    self.logger.error("No se pudo cargar ningún modelo de spaCy")
-                    raise ValueError("No se pudo cargar ningún modelo de spaCy")
+                    self.nlp = spacy.load(modelo_respaldo)
+                    self.logger.info(f"Modelo de respaldo {modelo_respaldo} cargado")
+                except Exception as e3:
+                    self.logger.error(f"Error crítico: No se pudo cargar ningún modelo de spaCy")
+                    raise ValueError(f"No se pudo inicializar spaCy: {str(e3)}")
     
-    def extract_entities(self, text):
+    def extraer_entidades(self, texto: str) -> list[dict]:
         """
-        Extrae entidades nombradas de un texto.
-        
-        Analiza el texto para encontrar nombres de personas, organizaciones,
-        lugares, fechas, cantidades, etc.
+        Extrae todas las entidades nombradas del texto.
         
         Args:
-            text: Texto del que extraer entidades
+            texto: Texto a analizar
             
         Returns:
-            Lista de entidades encontradas con detalles
+            Lista de diccionarios con información de cada entidad
         """
+        if not self.nlp:
+            self.logger.error("Modelo spaCy no está disponible")
+            return []
+        
         try:
             self.logger.debug("Procesando texto para extracción de entidades")
-            # Procesar el texto con spaCy
-            doc = self.nlp(text)
+            doc = self.nlp(texto)
             
-            # Recopilar todas las entidades encontradas
-            entities = []
+            entidades = []
             for ent in doc.ents:
-                entities.append({
-                    "text": ent.text,                # El texto de la entidad
-                    "start_char": ent.start_char,    # Posición inicial en el texto
-                    "end_char": ent.end_char,        # Posición final en el texto
-                    "label": ent.label_,             # Tipo de entidad (PERSON, ORG, etc.)
-                    "description": spacy.explain(ent.label_)  # Descripción del tipo
+                # Obtener descripción de la etiqueta
+                descripcion = None
+                try:
+                    descripcion = spacy.explain(ent.label_)
+                except (AttributeError, KeyError):
+                    descripcion = ent.label_
+                
+                entidades.append({
+                    "texto": ent.text,
+                    "inicio": ent.start_char,
+                    "fin": ent.end_char,
+                    "etiqueta": ent.label_,
+                    "descripcion": descripcion or ent.label_
                 })
             
-            self.logger.info(f"Se encontraron {len(entities)} entidades en el texto")
-            return entities
+            self.logger.info(f"Se encontraron {len(entidades)} entidades")
+            return entidades
             
         except Exception as e:
             self.logger.error(f"Error extrayendo entidades: {str(e)}")
             return []
     
-    def extract_entities_by_type(self, text):
+    def extraer_entidades_por_tipo(self, texto: str) -> dict:
         """
-        Extrae entidades nombradas y las agrupa por tipo.
-        
-        Similar a extract_entities, pero organiza los resultados
-        por categorías (personas, organizaciones, etc.)
+        Extrae entidades agrupadas por tipo.
         
         Args:
-            text: Texto del que extraer entidades
+            texto: Texto a analizar
             
         Returns:
             Diccionario con entidades agrupadas por tipo
         """
         try:
-            # Obtener todas las entidades
-            entities = self.extract_entities(text)
+            entidades = self.extraer_entidades(texto)
             
-            # Agrupar por tipo
-            entities_by_type = {}
-            for entity in entities:
-                entity_type = entity["label"]
-                if entity_type not in entities_by_type:
-                    entities_by_type[entity_type] = []
+            entidades_por_tipo = {}
+            for entidad in entidades:
+                tipo = entidad["etiqueta"]
+                if tipo not in entidades_por_tipo:
+                    entidades_por_tipo[tipo] = []
                 
-                entities_by_type[entity_type].append({
-                    "text": entity["text"],
-                    "start_char": entity["start_char"],
-                    "end_char": entity["end_char"]
+                entidades_por_tipo[tipo].append({
+                    "texto": entidad["texto"],
+                    "inicio": entidad["inicio"],
+                    "fin": entidad["fin"]
                 })
             
-            return entities_by_type
+            return entidades_por_tipo
             
         except Exception as e:
-            self.logger.error(f"Error agrupando entidades por tipo: {str(e)}")
+            self.logger.error(f"Error agrupando entidades: {str(e)}")
             return {}
-
-    def extract_main_entities(self, text):
+    
+    def extraer_entidades_principales(self, texto: str) -> dict:
         """
-        Extrae y organiza las entidades principales en categorías amigables.
-        
-        Convierte los códigos técnicos de spaCy en categorías más
-        comprensibles como "personas", "organizaciones", "lugares", etc.
+        Extrae entidades organizadas en categorías amigables.
         
         Args:
-            text: Texto del que extraer entidades
+            texto: Texto a analizar
             
         Returns:
-            Diccionario con entidades organizadas en categorías fáciles de entender
+            Diccionario con entidades en categorías legibles
         """
         try:
-            # Obtener todas las entidades
-            entities = self.extract_entities(text)
+            entidades = self.extraer_entidades(texto)
             
-            # Mapeo de tipos técnicos a categorías amigables
-            main_categories = {
-                "PERSON": "personas",         # Personas
-                "PER": "personas",            # Personas (otro código)
-                "ORG": "organizaciones",      # Organizaciones, empresas
-                "GPE": "lugares",             # Países, ciudades
-                "LOC": "lugares",             # Ubicaciones
-                "DATE": "fechas",             # Fechas
-                "TIME": "tiempo",             # Horas, períodos de tiempo
-                "MONEY": "valores_monetarios", # Cantidades monetarias
-                "PERCENT": "porcentajes",     # Porcentajes
-                "CARDINAL": "números",        # Números
-                "ORDINAL": "ordinales",       # Números ordinales (primero, segundo...)
-                "PRODUCT": "productos",       # Productos
-                "EVENT": "eventos",           # Eventos
-                "WORK_OF_ART": "obras",       # Obras artísticas
-                "LAW": "leyes",               # Leyes, normativas
-                "LANGUAGE": "idiomas",        # Idiomas
-                "FAC": "instalaciones",       # Instalaciones, edificios
-                "NORP": "grupos"              # Grupos, nacionalidades
+            # Mapeo de etiquetas técnicas a categorías amigables
+            mapeo_categorias = {
+                "PERSON": "personas",
+                "PER": "personas",
+                "ORG": "organizaciones",
+                "GPE": "lugares",
+                "LOC": "lugares",
+                "DATE": "fechas",
+                "TIME": "tiempo",
+                "MONEY": "valores_monetarios",
+                "PERCENT": "porcentajes",
+                "CARDINAL": "numeros",
+                "ORDINAL": "ordinales",
+                "PRODUCT": "productos",
+                "EVENT": "eventos",
+                "WORK_OF_ART": "obras",
+                "LAW": "leyes",
+                "LANGUAGE": "idiomas",
+                "FAC": "instalaciones",
+                "NORP": "grupos"
             }
             
-            # Crear diccionario para resultados con categorías predefinidas
-            main_entities = {
+            # Inicializar resultado con categorías principales
+            resultado = {
                 "personas": [],
                 "organizaciones": [],
                 "lugares": [],
@@ -180,24 +186,27 @@ class EntityExtractor:
                 "otros": []
             }
             
-            # Clasificar cada entidad en su categoría correspondiente
-            for entity in entities:
-                # Determinar la categoría según el tipo de entidad
-                category = main_categories.get(entity["label"], "otros")
+            # Clasificar entidades
+            for entidad in entidades:
+                categoria = mapeo_categorias.get(entidad["etiqueta"], "otros")
                 
-                # Crear la categoría si no existe
-                if category not in main_entities:
-                    main_entities[category] = []
-                    
+                # Crear categoría si no existe
+                if categoria not in resultado:
+                    resultado[categoria] = []
+                
                 # Evitar duplicados
-                if entity["text"] not in [e["text"] for e in main_entities[category]]:
-                    main_entities[category].append({
-                        "text": entity["text"],   # El texto de la entidad
-                        "label": entity["label"]  # El tipo técnico original
+                texto_entidad = entidad["texto"]
+                if not any(e["texto"] == texto_entidad for e in resultado[categoria]):
+                    resultado[categoria].append({
+                        "texto": texto_entidad,
+                        "etiqueta": entidad["etiqueta"]
                     })
             
-            return main_entities
+            return resultado
             
         except Exception as e:
             self.logger.error(f"Error extrayendo entidades principales: {str(e)}")
             return {"error": str(e)}
+
+# Alias para compatibilidad
+EntityExtractor = ExtractorEntidades
