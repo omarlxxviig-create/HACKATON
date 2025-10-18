@@ -1,0 +1,71 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox, scrolledtext
+from PIL import Image
+import pytesseract
+import fitz  # PyMuPDF
+import io
+import os
+
+# Configuración de idioma OCR
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # ajusta si está en otra ruta
+
+# Función principal de extracción
+def extract_text(file_path):
+    ext = file_path.lower().split(".")[-1]
+    text = ""
+
+    try:
+        if ext == "pdf":
+            pdf = fitz.open(file_path)
+            for page_num, page in enumerate(pdf):
+                pix = page.get_pixmap(dpi=300)
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                text += f"\n--- Página {page_num + 1} ---\n"
+                text += pytesseract.image_to_string(img, lang="spa")
+            pdf.close()
+        elif ext in ["jpg", "jpeg", "png"]:
+            img = Image.open(file_path)
+            text = pytesseract.image_to_string(img, lang="spa")
+        else:
+            text = "⚠️ Formato no soportado."
+    except Exception as e:
+        text = f"❌ Error procesando {os.path.basename(file_path)}: {str(e)}"
+
+    return text
+
+
+# Función para seleccionar varios archivos
+def load_files():
+    files = filedialog.askopenfilenames(
+        title="Seleccionar documentos",
+        filetypes=[("Documentos PDF o imágenes", "*.pdf *.png *.jpg *.jpeg")]
+    )
+    if not files:
+        return
+
+    output_text.delete(1.0, tk.END)
+    for f in files:
+        output_text.insert(tk.END, f"\n📂 Procesando: {os.path.basename(f)}\n", "file")
+        extracted = extract_text(f)
+        output_text.insert(tk.END, extracted + "\n\n")
+    messagebox.showinfo("Finalizado", "OCR completado para todos los archivos.")
+
+
+# Interfaz gráfica
+root = tk.Tk()
+root.title("OCR con Tesseract + PyMuPDF")
+root.geometry("800x600")
+root.configure(bg="#f5f5f5")
+
+# Título
+tk.Label(root, text="CARGA Y LECTURA OCR DE DOCUMENTOS", font=("Arial", 16, "bold"), bg="#f5f5f5").pack(pady=10)
+
+# Botón de carga
+tk.Button(root, text="📁 Cargar documentos", command=load_files, font=("Arial", 12), bg="#007acc", fg="white", relief="ridge").pack(pady=10)
+
+# Cuadro de texto para resultados
+output_text = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=90, height=25, font=("Consolas", 10))
+output_text.pack(padx=10, pady=10)
+output_text.tag_config("file", foreground="#007acc", font=("Arial", 10, "bold"))
+
+root.mainloop()
