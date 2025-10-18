@@ -14,5 +14,6 @@ PyMuPDF
 
 # Otros
 python-dotenv
+pyspellchecker==0.7.2
 
 # Nota: numpy y scipy se instalan automáticamente como dependencias
