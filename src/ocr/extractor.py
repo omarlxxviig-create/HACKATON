@@ -265,3 +265,27 @@ class TextExtractor:
         except Exception as e:
             self.logger.error(f"Error extrayendo con confianza: {str(e)}")
             raise
+# Añade esto al inicio o final de src/ocr/extractor.py
+
+from typing import List, Optional
+from PIL import Image
+
+# Importa la clase TextExtractor existente
+# (supongo que ya está en ese archivo según las mejores prácticas recomendadas)
+# Si no, pega aquí también la clase TextExtractor que te di
+
+# Funciones para compatibilidad con código existente
+
+def extraer_texto_imagen(image: Image.Image) -> str:
+    """
+    Función para extraer texto de una imagen, compatible con API existente.
+    """
+    extractor = TextExtractor()
+    return extractor.extract_from_image(image)
+
+def extraer_texto_pdf(pdf_path: Optional[str] = None, pdf_bytes: Optional[bytes] = None) -> List[str]:
+    """
+    Función para extraer texto de PDF, compatible con API existente.
+    """
+    extractor = TextExtractor()
+    return extractor.extract_from_pdf(pdf_path=pdf_path, pdf_bytes=pdf_bytes)
