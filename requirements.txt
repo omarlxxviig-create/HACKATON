@@ -12,4 +12,7 @@ opencv-python
 Pillow
 PyMuPDF
 
+# Otros
+python-dotenv
+
 # Nota: numpy y scipy se instalan automáticamente como dependencias

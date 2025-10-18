@@ -1,6 +1,6 @@
 # OCR Simple API
 
-Sistema simple para extraer texto de imágenes y PDFs usando Tesseract.
+Sistema minimalista para extraer texto de imágenes y PDFs.
 
 ## Instalación
 
@@ -10,7 +10,9 @@ pip install -r requirements.txt
 
 ## Configuración
 
-Crea un archivo `.env`:
+Instala Tesseract: https://github.com/UB-Mannheim/tesseract/wiki
+
+Crea `.env`:
 
 ```
 TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
