@@ -7,7 +7,7 @@ sea más fácil leerla, similar a ajustar el brillo y contraste de una foto
 antes de imprimirla.
 
 Mejoras que realiza:
-1. Convierte documentos PDF a imágenes
+1. Convierte documentos PDF a imágenes usando PyMuPDF
 2. Mejora el contraste y nitidez
 3. Corrige la rotación si el documento está torcido
 4. Elimina el "ruido" (manchas, puntos) de la imagen
@@ -15,8 +15,10 @@ Mejoras que realiza:
 
 import cv2
 import numpy as np
-from pdf2image import convert_from_path, convert_from_bytes
+import fitz  # PyMuPDF
+from PIL import Image
 from loguru import logger
+import io
 
 class DocumentPreprocessor:
     """
@@ -79,7 +81,10 @@ class DocumentPreprocessor:
     
     def pdf_to_images(self, pdf_path=None, pdf_bytes=None):
         """
-        Convierte un documento PDF en una lista de imágenes.
+        Convierte un documento PDF en una lista de imágenes usando PyMuPDF.
+        
+        PyMuPDF (fitz) no requiere instalación adicional de poppler,
+        lo que hace que sea más fácil de usar.
         
         Cada página del PDF se convierte en una imagen separada.
         
@@ -88,21 +93,89 @@ class DocumentPreprocessor:
             pdf_bytes: Contenido del PDF en memoria
             
         Returns:
-            Lista de imágenes, una por cada página del PDF
+            Lista de imágenes PIL, una por cada página del PDF
         """
         try:
+            # Abrir el documento PDF
             if pdf_path:
                 self.logger.info(f"Convirtiendo PDF desde archivo: {pdf_path}")
-                return convert_from_path(pdf_path)
+                
+                # Verificar que el archivo existe y es accesible
+                import os
+                if not os.path.exists(pdf_path):
+                    raise FileNotFoundError(f"Archivo PDF no encontrado: {pdf_path}")
+                
+                if not os.access(pdf_path, os.R_OK):
+                    raise PermissionError(f"No se tienen permisos para leer: {pdf_path}")
+                
+                # Verificar tamaño del archivo
+                file_size = os.path.getsize(pdf_path)
+                self.logger.info(f"Tamaño del archivo PDF: {file_size} bytes")
+                
+                if file_size == 0:
+                    raise ValueError("El archivo PDF está vacío")
+                
+                # Abrir el PDF
+                pdf_document = fitz.open(pdf_path)
+                
             elif pdf_bytes:
                 self.logger.info("Convirtiendo PDF desde bytes")
-                return convert_from_bytes(pdf_bytes)
+                
+                if not pdf_bytes or len(pdf_bytes) == 0:
+                    raise ValueError("Los bytes del PDF están vacíos")
+                
+                # Abrir PDF desde bytes
+                pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
             else:
                 raise ValueError("Se debe proporcionar pdf_path o pdf_bytes")
+            
+            # Verificar que el PDF tiene páginas
+            num_pages = len(pdf_document)
+            if num_pages == 0:
+                raise ValueError("El PDF no tiene páginas")
+            
+            self.logger.info(f"PDF abierto: {num_pages} páginas encontradas")
+            
+            # Convertir cada página a imagen
+            images = []
+            for page_num in range(num_pages):
+                try:
+                    self.logger.debug(f"Convirtiendo página {page_num + 1}/{num_pages}")
+                    
+                    # Obtener la página
+                    page = pdf_document[page_num]
+                    
+                    # Convertir a imagen con alta resolución (matriz de transformación para zoom)
+                    # zoom=2 significa 2x el tamaño original (aprox 144 DPI si el original es 72 DPI)
+                    mat = fitz.Matrix(2, 2)
+                    pix = page.get_pixmap(matrix=mat)
+                    
+                    # Convertir a PIL Image
+                    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+                    images.append(img)
+                    
+                    self.logger.debug(f"Página {page_num + 1} convertida: {img.size}")
+                    
+                except Exception as page_error:
+                    self.logger.error(f"Error al convertir página {page_num + 1}: {str(page_error)}")
+                    # Continuar con las siguientes páginas aunque una falle
+                    continue
+            
+            # Cerrar el documento
+            pdf_document.close()
+            
+            if not images:
+                raise ValueError("No se pudo convertir ninguna página del PDF")
+            
+            self.logger.info(f"PDF convertido exitosamente: {len(images)} páginas")
+            return images
+                
         except Exception as e:
-            self.logger.error(f"Error al convertir PDF: {str(e)}")
-            raise
-    
+            import traceback
+            error_msg = f"Error al convertir PDF: {str(e)}\n{traceback.format_exc()}"
+            self.logger.error(error_msg)
+            raise Exception(error_msg)
+
     def detect_rotation(self, image):
         """
         Detecta si una imagen está rotada y cuántos grados.
@@ -221,3 +294,6 @@ class DocumentPreprocessor:
             enhanced = clahe.apply(image)
             
         return enhanced
+
+# Archivo mantenido para compatibilidad pero no es necesario en la versión simple
+pass

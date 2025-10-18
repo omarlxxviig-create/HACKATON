@@ -1,107 +1,22 @@
-# Sistema de Extracción y Análisis Inteligente de Documentos
+# OCR Simple API
 
-Este proyecto implementa un sistema que utiliza Inteligencia Artificial para extraer texto y analizar el contenido de documentos PDF e imágenes. Combina técnicas de reconocimiento óptico de caracteres (OCR) y procesamiento de lenguaje natural (NLP).
+Sistema simple para extraer texto de imágenes y PDFs usando Tesseract.
 
-## ¿Qué hace este sistema?
+## Instalación
 
-Este sistema es capaz de:
+```bash
+pip install -r requirements.txt
+```
 
-1. **Extraer texto** de documentos PDF y imágenes escaneadas
-2. **Identificar palabras clave** importantes en el contenido
-3. **Reconocer entidades** como nombres de personas, organizaciones, lugares, fechas, etc.
-4. **Exponer toda esta funcionalidad** a través de una API web
+## Configuración
 
-Es como tener un asistente que puede leer documentos y destacar la información más relevante automáticamente.
+Crea un archivo `.env`:
 
-## Componentes principales
+```
+TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
+```
 
-El sistema está dividido en varios módulos:
-
-### 1. Módulo OCR (Reconocimiento Óptico de Caracteres)
-
-Este módulo se encarga de "leer" el texto en imágenes y PDF escaneados. Incluye:
-
-- Preprocesamiento de imágenes para mejorar la calidad
-- Corrección de orientación si el documento está rotado
-- Extracción del texto usando la herramienta Tesseract
-
-### 2. Módulo NLP (Procesamiento de Lenguaje Natural)
-
-Este módulo analiza el texto extraído para encontrar información relevante. Incluye:
-
-- Extracción de palabras clave usando varios algoritmos
-- Identificación de entidades nombradas (personas, organizaciones, etc.)
-- Clasificación del contenido
-
-### 3. API (Interfaz de Programación)
-
-Este módulo permite que otros sistemas se comuniquen con nuestro sistema. Incluye:
-
-- Endpoints para subir documentos
-- Procesamiento en segundo plano para tareas largas
-- Consulta de resultados cuando el procesamiento termina
-
-## Instalación para no programadores
-
-### Requisitos previos
-
-1. **Python**: Necesitarás Python 3.9 o superior.
-
-   - Descarga desde [python.org](https://www.python.org/downloads/)
-   - Durante la instalación, marca la opción "Add Python to PATH"
-
-2. **Tesseract OCR**: El motor de reconocimiento de texto en imágenes.
-   - Para Windows: Descarga el instalador desde [aquí](https://github.com/UB-Mannheim/tesseract/wiki)
-   - Para Mac: Instala con `brew install tesseract`
-   - Para Linux: Instala con `sudo apt install tesseract-ocr`
-
-### Pasos de instalación
-
-1. **Descargar el proyecto**:
-
-   - Descarga y descomprime el proyecto en tu computadora
-
-2. **Abrir una terminal o símbolo del sistema**:
-
-   - En Windows: Busca "cmd" o "PowerShell" en el menú inicio
-   - En Mac/Linux: Abre la aplicación "Terminal"
-
-3. **Navegar a la carpeta del proyecto**:
-
-   ```
-   cd ruta/a/la/carpeta/HACKATON
-   ```
-
-4. **Crear un entorno virtual**:
-
-   ```
-   python -m venv venv
-   ```
-
-5. **Activar el entorno virtual**:
-
-   - En Windows:
-     ```
-     venv\Scripts\activate
-     ```
-   - En Mac/Linux:
-     ```
-     source venv/bin/activate
-     ```
-
-6. **Instalar las dependencias**:
-
-   ```
-   pip install -r requirements.txt
-   ```
-
-7. **Descargar modelos de lenguaje**:
-   ```
-   python -m spacy download en_core_web_md
-   python -m spacy download es_core_news_md
-   ```
-
-## Uso para no programadores
+## Uso
 
 1. **Iniciar el sistema**:
 

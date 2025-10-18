@@ -39,3 +39,7 @@ data/output/*
 # Archivos específicos de macOS y Windows que no son necesarios.
 .DS_Store
 Thumbs.db
+
+# Archivos temporales
+# Archivos generados durante la ejecución del programa.
+temp/

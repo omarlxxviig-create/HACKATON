@@ -32,7 +32,8 @@ DATA_DIR = BASE_DIR / "data"
 INPUT_DIR = DATA_DIR / "input"
 
 # OUTPUT_DIR: Carpeta donde se guardan los resultados procesados
-OUTPUT_DIR = DATA_DIR / "output"
+OUTPUT_DIR = BASE_DIR / "temp"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # LOG_DIR: Carpeta para los registros del sistema (útil para depuración)
 LOG_DIR = BASE_DIR / "logs"
@@ -49,7 +50,20 @@ os.makedirs(LOG_DIR, exist_ok=True)
 OCR_ENGINE = os.getenv("OCR_ENGINE", "tesseract")
 
 # Ruta al programa Tesseract (necesario cambiarlo según dónde esté instalado)
-TESSERACT_PATH = os.getenv("TESSERACT_PATH", "tesseract")
+TESSERACT_PATH = os.getenv("TESSERACT_PATH")
+
+if not TESSERACT_PATH:
+    # Intentar encontrar Tesseract automáticamente
+    posibles_rutas = [
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        r"C:\Tesseract-OCR\tesseract.exe",
+    ]
+    
+    for ruta in posibles_rutas:
+        if os.path.exists(ruta):
+            TESSERACT_PATH = ruta
+            break
 
 # Idiomas que puede reconocer el OCR (eng=inglés, spa=español)
 OCR_LANGUAGES = os.getenv("OCR_LANGUAGES", "eng+spa").split("+")

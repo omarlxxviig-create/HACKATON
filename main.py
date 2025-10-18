@@ -13,7 +13,7 @@ import argparse
 from loguru import logger
 
 # Importar componentes
-from src.api.app import start_server
+from src.api.app import iniciar
 from src.utils.logger import get_logger
 import config
 
@@ -75,7 +75,7 @@ def main():
     log.info("Iniciando Sistema de Extracción y Análisis Inteligente de Documentos")
     try:
         # Esta función inicia el servidor web y no retorna hasta que se detenga
-        start_server()
+        iniciar()
     except KeyboardInterrupt:
         # Capturar cuando el usuario presiona Ctrl+C para detener el programa
         log.info("Sistema detenido por el usuario")
@@ -89,3 +89,9 @@ def main():
 # Este bloque se ejecuta cuando el archivo se corre directamente
 if __name__ == "__main__":
     exit(main())
+
+# Iniciar el servidor OCR
+if __name__ == "__main__":
+    print("Iniciando servidor OCR en puerto 8000...")
+    print("Documentación: http://localhost:8000/docs")
+    iniciar()
